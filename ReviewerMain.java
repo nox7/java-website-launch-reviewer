@@ -19,6 +19,8 @@ public class ReviewerMain {
 	private static boolean browserHasFocus = false;
 
 	public static void buildFrame(){
+
+		// Define the CEF app and browser
 		CefApp.addAppHandler((new CefAppHandlerAdapter(null){
 			@Override
 			public void stateHasChanged(CefAppState state) {
@@ -29,53 +31,11 @@ public class ReviewerMain {
 		}));
 
 		final CefSettings settings = new CefSettings();
-		settings.windowless_rendering_enabled = false; // Setting to true will disable interaction
-
+		settings.windowless_rendering_enabled = false;
 		final CefApp cefApp = CefApp.getInstance(settings);
 		final CefClient client = cefApp.createClient();
-		final CefBrowser browser = client.createBrowser("http://www.google.com", OS.isLinux(), false);
+		final CefBrowser browser = client.createBrowser("http://www.google.com", false, false);
 		final Component browserUI = browser.getUIComponent();
-
-
-		final JFrame mainFrame = new JFrame("Footbridge Media Site Launch Inspector");
-		final JTextField addressBox = new JTextField("Hello", 100);
-		final Font currentAddressBoxFont = addressBox.getFont();
-		final Font newAddressBoxFont = currentAddressBoxFont.deriveFont((float)16);
-		addressBox.setMargin(new Insets(5,5,5,5));
-		addressBox.setFont(newAddressBoxFont);
-		mainFrame.setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
-		mainFrame.getContentPane().add(addressBox, BorderLayout.SOUTH);
-		mainFrame.getContentPane().add(browserUI, BorderLayout.CENTER);
-		mainFrame.setEnabled(true);
-		mainFrame.setSize(800, 600);
-		mainFrame.setVisible(true);
-		mainFrame.addWindowListener(new WindowAdapter() {
-			@Override public void windowClosing(WindowEvent e) {
-				mainFrame.dispose();
-				cefApp.dispose();
-				// Alternative: CefApp.getInstance().dispose();
-			}
-		});
-
-		addressBox.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(ActionEvent e) {
-				// The enter key fires this
-				browser.loadURL("https://www.lumenshield.com");
-			}
-		});
-
-		addressBox.addFocusListener(new FocusAdapter() {
-			@Override
-			public void focusGained(FocusEvent e) {
-				if (!browserHasFocus) return;
-				browserHasFocus = false;
-				KeyboardFocusManager.getCurrentKeyboardFocusManager().clearGlobalFocusOwner();
-				addressBox.grabFocus(); // Allows typing into the box
-				System.out.println("Address box got focus");
-			}
-		});
-
 		client.addFocusHandler(new CefFocusHandlerAdapter(){
 			@Override
 			public void onGotFocus(CefBrowser browser) {
@@ -92,7 +52,86 @@ public class ReviewerMain {
 			}
 		});
 
+		// Define the addressbox
+		final JTextField addressBox = new JTextField("Hello", 20);
+		final Font currentAddressBoxFont = addressBox.getFont();
+		final Font newAddressBoxFont = currentAddressBoxFont.deriveFont((float)16);
+		addressBox.setMargin(new Insets(5,5,5,5));
+		addressBox.setFont(newAddressBoxFont);
+		addressBox.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				// The enter key fires this
+				browser.loadURL("https://www.lumenshield.com");
+			}
+		});
+		addressBox.addFocusListener(new FocusAdapter() {
+			@Override
+			public void focusGained(FocusEvent e) {
+				if (!browserHasFocus) return;
+				browserHasFocus = false;
+				KeyboardFocusManager.getCurrentKeyboardFocusManager().clearGlobalFocusOwner();
+				addressBox.grabFocus(); // Allows typing into the box
+				System.out.println("Address box got focus");
+			}
+		});
+
+		// Define the frames
+		final JFrame frameContainer = new JFrame("Footbridge Media Site Launch Inspector");
+		final JPanel panel = new JPanel(new GridBagLayout());
+		final GridBagConstraints gc = new GridBagConstraints();
+
+		// The topPanel receives the browser
+		browserUI.setPreferredSize(new Dimension(500,500));
+
+		gc.fill = GridBagConstraints.BOTH;
+		gc.weightx = 1;
+		gc.weighty = 1;
+		gc.gridx = 0;
+		gc.gridy = 0;
+		panel.add(browserUI, gc);
+
+		gc.fill = GridBagConstraints.HORIZONTAL;
+		gc.weightx = 1;
+		gc.weighty = 0;
+		gc.gridx = 0;
+		gc.gridy = 1;
+		gc.gridwidth = 2;
+		panel.add(addressBox, gc);
+
+
+		frameContainer.setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
+		frameContainer.setSize(800, 600);
+		frameContainer.addWindowListener(new WindowAdapter() {
+			@Override
+			public void windowClosing(WindowEvent e) {
+				frameContainer.dispose();
+				cefApp.dispose();
+				// Alternative: CefApp.getInstance().dispose();
+			}
+		});
+
+		frameContainer.addComponentListener(new ComponentAdapter() {
+			@Override
+			public void componentResized(ComponentEvent e) {
+				System.out.println("Resized");
+				System.out.println(frameContainer.getSize().toString());
+
+				panel.setSize(frameContainer.getSize());
+				frameContainer.repaint();
+				frameContainer.revalidate();
+			}
+		});
+
+		frameContainer.add(panel, BorderLayout.CENTER);
+		frameContainer.pack();
+		frameContainer.setEnabled(true);
+		frameContainer.setVisible(true);
+
+		final Component[] components = panel.getComponents();
+
 		System.out.println("Init");
+		System.out.println(components.length);
 	}
 
 	public static void main(String[] args){
